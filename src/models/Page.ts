@@ -6,6 +6,8 @@ const pageSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, lowercase: true },
     content: { type: String, required: true }, // This will store the HTML
     isPublished: { type: Boolean, default: true },
+    metaTitle: { type: String, default: "" },
+    metaDescription: { type: String, default: "" },
   },
   { timestamps: true }
 );
