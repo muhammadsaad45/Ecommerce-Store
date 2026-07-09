@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-// Using our bulletproof relative paths to avoid configuration errors
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 

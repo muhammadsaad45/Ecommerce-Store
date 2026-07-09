@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-// 1. Import the official Cloudinary Upload Widget
 import { CldUploadWidget } from "next-cloudinary";
 
 export default function NewProductPage() {

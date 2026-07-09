@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -12,6 +12,9 @@ export default function NewPageForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
+  // Ref to access the Quill editor instance
+  const quillRef = useRef<any>(null);
+
   // Upgraded state to handle SEO and the visibility toggle
   const [content, setContent] = useState("");
   const [isPublished, setIsPublished] = useState(true);
@@ -25,6 +28,62 @@ export default function NewPageForm() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
+
+  // The Custom Image Interceptor
+  const imageHandler = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
+
+    input.onchange = async () => {
+      if (input !== null && input.files !== null) {
+        const file = input.files[0];
+        const uploadData = new FormData();
+        uploadData.append("file", file);
+
+        try {
+          // Send the file to our new background API route
+          const response = await fetch("/api/upload", {
+            method: "POST",
+            body: uploadData,
+          });
+          const data = await response.json();
+
+          if (data.secure_url) {
+            // Find exactly where the user's cursor is and insert the image URL
+            const quill = quillRef.current?.getEditor();
+            if (quill) {
+              const range = quill.getSelection();
+              quill.insertEmbed(range.index, "image", data.secure_url);
+            }
+          }
+        } catch (error) {
+          console.error("Upload failed", error);
+          alert("Failed to upload image");
+        }
+      }
+    };
+  }, []);
+
+  // Bind the custom handler to the toolbar
+  const modules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["link", "image"], // Image button enabled
+          ["clean"],
+        ],
+        handlers: {
+          image: imageHandler, // Override default behavior
+        },
+      },
+    }),
+    [imageHandler]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,9 +151,16 @@ export default function NewPageForm() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Content</label>
-              {/* Added text-gray-900 to this wrapper div */}
               <div className="bg-white rounded-lg border border-gray-300 overflow-hidden text-gray-900">
-                <ReactQuill theme="snow" value={content} onChange={setContent} className="h-80" />
+                <ReactQuill 
+                // @ts-ignore
+                  ref={quillRef}
+                  theme="snow" 
+                  value={content} 
+                  onChange={setContent} 
+                  modules={modules}
+                  className="h-80" 
+                />
               </div>
             </div>
           </div>
