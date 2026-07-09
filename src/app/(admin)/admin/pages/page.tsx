@@ -65,6 +65,15 @@ export default async function PagesDashboard() {
                     >
                       View
                     </Link>
+                    
+                    {/* The New Edit Button */}
+                    <Link 
+                      href={`/admin/pages/edit/${page._id.toString()}`} 
+                      className="text-amber-600 hover:text-amber-900 font-medium"
+                    >
+                      Edit
+                    </Link>
+
                     <DeletePageButton pageId={page._id.toString()} />
                   </td>
                 </tr>
