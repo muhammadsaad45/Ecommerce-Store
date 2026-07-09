@@ -1,10 +1,29 @@
 import Link from "next/link";
+import { connectToDatabase } from "@/lib/mongodb";
+import Page from "@/models/Page";
 
-export default function StorefrontLayout({
+// Cache the footer for 1 hour so we don't spam the database
+export const revalidate = 3600;
+
+async function getFooterPages() {
+  try {
+    await connectToDatabase();
+    const pages = await Page.find({ isPublished: true }).select("title slug").lean();
+    return pages;
+  } catch (error) {
+    console.error("Failed to fetch footer pages:", error);
+    return [];
+  }
+}
+
+export default async function StorefrontLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Fetch the pages before rendering the layout
+  const footerPages = await getFooterPages();
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-black">
       {/* Public Store Navbar */}
@@ -42,19 +61,24 @@ export default function StorefrontLayout({
               </p>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Support</h3>
               <ul className="space-y-3 text-sm text-gray-500">
-                <li><Link href="/" className="hover:text-blue-600">Shop All</Link></li>
-                <li><Link href="/deals" className="hover:text-blue-600">Today's Deals</Link></li>
-                <li><Link href="/about" className="hover:text-blue-600">About Us</Link></li>
+                <li><Link href="/pages/faq" className="hover:text-blue-600">FAQs</Link></li>
+                <li><Link href="pages/contact-us" className="hover:text-blue-600">Contact Us</Link></li>
               </ul>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-gray-900 mb-4">Support</h3>
+              <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>
               <ul className="space-y-3 text-sm text-gray-500">
-                <li><Link href="/contact" className="hover:text-blue-600">Contact Us</Link></li>
-                <li><Link href="/faq" className="hover:text-blue-600">FAQ</Link></li>
-                <li><Link href="/returns" className="hover:text-blue-600">Returns Policy</Link></li>
+                
+                {/* Dynamic CMS Links Area */}
+                {footerPages.map((page: any) => (
+                  <li key={page._id.toString()}>
+                    <Link href={`/pages/${page.slug}`} className="hover:text-blue-600 capitalize">
+                      {page.title}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
