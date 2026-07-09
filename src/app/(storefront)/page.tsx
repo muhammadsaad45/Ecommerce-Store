@@ -30,7 +30,7 @@ export default async function StoreHomepage() {
 
         {products.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-xl border border-gray-200">
-            <p className="text-gray-500 text-lg">No products found. Go to the Admin Panel to add some!</p>
+            <p className="text-gray-500 text-lg">No products found.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
@@ -47,11 +47,11 @@ export default async function StoreHomepage() {
                   />
                 </div>
 
-                <div className="p-5 flex flex-col flex-grow">
+                <div className="p-5 flex flex-col grow">
                   <h2 className="font-bold text-lg text-gray-800 mb-1 line-clamp-1">
                     {product.name}
                   </h2>
-                  <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-grow">
+                  <p className="text-gray-500 text-sm mb-4 line-clamp-2 grow">
                     {product.description}
                   </p>
                   

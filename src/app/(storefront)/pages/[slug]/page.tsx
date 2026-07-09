@@ -1,24 +1,36 @@
 import { connectToDatabase } from "@/lib/mongodb";
 import Page from "@/models/Page";
 import { notFound } from "next/navigation";
+import { Metadata } from "next"; // Import Next.js Metadata type
 
-// Required for Next.js 15 dynamic routing
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
+// 1. Next.js automatically runs this function to build the <head> tags for Google
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  await connectToDatabase();
+  const pageData = await Page.findOne({ slug: resolvedParams.slug }).lean();
+
+  if (!pageData) return { title: "Page Not Found" };
+
+  // Prioritize the custom SEO title/description. If blank, fall back to the standard title.
+  return {
+    title: pageData.metaTitle || pageData.title,
+    description: pageData.metaDescription || "Read more at TechStore",
+  };
+}
+
 export default async function CustomStorefrontPage({ params }: PageProps) {
-  // 1. Await the dynamic slug from the URL
   const resolvedParams = await params;
   
-  // 2. Fetch the specific page from the database
   await connectToDatabase();
   const pageData = await Page.findOne({ 
     slug: resolvedParams.slug, 
     isPublished: true 
   }).lean();
 
-  // 3. If the admin deleted the page or it's a typo, show a 404
   if (!pageData) {
     notFound(); 
   }
@@ -29,7 +41,6 @@ export default async function CustomStorefrontPage({ params }: PageProps) {
         {pageData.title}
       </h1>
       
-      {/* 4. dangerouslySetInnerHTML tells React it is safe to render raw HTML here */}
       <div 
         className="prose prose-lg prose-blue max-w-none text-gray-700"
         dangerouslySetInnerHTML={{ __html: pageData.content }}
