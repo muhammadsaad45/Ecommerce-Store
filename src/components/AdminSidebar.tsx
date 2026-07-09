@@ -31,6 +31,12 @@ export default function AdminSidebar() {
         >
           Orders
         </Link>
+        <Link 
+          href="/admin/pages" 
+          className="block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          Pages
+        </Link>
       </nav>
 
       {/* Bottom Action Area */}
