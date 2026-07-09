@@ -46,7 +46,7 @@ export default async function StorefrontLayout({
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-grow w-full">
+      <main className="grow w-full">
         {children}
       </main>
 
