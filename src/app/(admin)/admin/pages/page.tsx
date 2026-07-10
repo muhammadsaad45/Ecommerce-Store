@@ -58,15 +58,15 @@ export default async function PagesDashboard() {
                     </span>
                   </td>
                   <td className="p-4 text-right space-x-4">
+                    {/* Upgraded View Button */}
                     <Link 
-                      href={`/pages/${page.slug}`} 
+                      href={page.isPublished ? `/pages/${page.slug}` : `/pages/${page.slug}?preview=true`} 
                       target="_blank"
                       className="text-blue-600 hover:text-blue-900 font-medium"
                     >
                       View
                     </Link>
                     
-                    {/* The New Edit Button */}
                     <Link 
                       href={`/admin/pages/edit/${page._id.toString()}`} 
                       className="text-amber-600 hover:text-amber-900 font-medium"
