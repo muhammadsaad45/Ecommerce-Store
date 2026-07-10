@@ -8,7 +8,7 @@ export const revalidate = 3600;
 async function getFooterPages() {
   try {
     await connectToDatabase();
-    const pages = await Page.find({ isPublished: true }).select("title slug").lean();
+    const pages = await Page.find({ isPublished: true }).select("title slug footerPlacement").lean();
     return pages;
   } catch (error) {
     console.error("Failed to fetch footer pages:", error);
@@ -23,6 +23,8 @@ export default async function StorefrontLayout({
 }) {
   // Fetch the pages before rendering the layout
   const footerPages = await getFooterPages();
+  const quickLinks = footerPages.filter((page: any) => page.footerPlacement === 'quick_links' || !page.footerPlacement);
+  const legalLinks = footerPages.filter((page: any) => page.footerPlacement === 'legal');
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50 text-black">
@@ -64,30 +66,41 @@ export default async function StorefrontLayout({
               <h3 className="text-lg font-bold text-gray-900 mb-4">Support</h3>
               <ul className="space-y-3 text-sm text-gray-500">
                 <li><Link href="/pages/faq" className="hover:text-blue-600">FAQs</Link></li>
-                <li><Link href="pages/contact-us" className="hover:text-blue-600">Contact Us</Link></li>
+                <li><Link href="/pages/contact-us" className="hover:text-blue-600">Contact Us</Link></li>
               </ul>
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Links</h3>
               <ul className="space-y-3 text-sm text-gray-500">
                 
-                {/* Dynamic CMS Links Area */}
-                {footerPages.map((page: any) => (
+                {/* Upgraded: Now only maps over pages tagged for Quick Links */}
+                {quickLinks.map((page: any) => (
                   <li key={page._id.toString()}>
                     <Link href={`/pages/${page.slug}`} className="hover:text-blue-600 capitalize">
                       {page.title}
                     </Link>
                   </li>
                 ))}
+                
               </ul>
             </div>
           </div>
           <div className="text-center text-sm text-gray-400 border-t border-gray-100 pt-8 flex flex-col md:flex-row justify-between items-center">
             <p>&copy; {new Date().getFullYear()} TechStore. All rights reserved.</p>
-            <div className="mt-4 md:mt-0 space-x-4">
-              <span className="hover:text-gray-600 cursor-pointer">Privacy Policy</span>
-              <span className="hover:text-gray-600 cursor-pointer">Terms of Service</span>
+            
+            <div className="mt-4 md:mt-0 space-x-6 flex">
+              {/* Upgraded: Dynamically maps the legal/policy pages here */}
+              {legalLinks.map((page: any) => (
+                <Link 
+                  key={page._id.toString()} 
+                  href={`/pages/${page.slug}`} 
+                  className="hover:text-gray-600 transition-colors"
+                >
+                  {page.title}
+                </Link>
+              ))}
             </div>
+            
           </div>
         </div>
       </footer>

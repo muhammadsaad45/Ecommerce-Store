@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Page from "@/models/Page";
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
     }
 
     const newPage = await Page.create(body);
+    revalidatePath("/", "layout");
     return NextResponse.json(newPage, { status: 201 });
   } catch (error: any) {
     console.error("POST /api/pages Error:", error);
@@ -46,6 +48,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
     }
 
+    revalidatePath("/", "layout");
     return NextResponse.json({ message: "Page deleted successfully" }, { status: 200 });
   } catch (error: any) {
     console.error("DELETE /api/pages Error:", error);
@@ -70,7 +73,8 @@ export async function PUT(request: Request) {
     if (!updatedPage) {
       return NextResponse.json({ error: "Page not found" }, { status: 404 });
     }
-
+    
+    revalidatePath("/", "layout");
     return NextResponse.json(updatedPage, { status: 200 });
   } catch (error: any) {
     console.error("PUT /api/pages Error:", error);

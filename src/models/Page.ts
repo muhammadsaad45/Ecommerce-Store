@@ -6,6 +6,11 @@ const pageSchema = new mongoose.Schema(
     slug: { type: String, required: true, unique: true, lowercase: true },
     content: { type: String, required: true }, // This will store the HTML
     isPublished: { type: Boolean, default: true },
+    footerPlacement: {
+      type: String,
+      enum: ['quick_links', 'legal', 'hidden'],
+      default: 'quick_links',
+    },
     metaTitle: { type: String, default: "" },
     metaDescription: { type: String, default: "" },
   },

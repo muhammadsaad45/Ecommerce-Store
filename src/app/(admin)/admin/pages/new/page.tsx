@@ -23,9 +23,10 @@ export default function NewPageForm() {
     slug: "",
     metaTitle: "",
     metaDescription: "",
+    footerPlacement: "", // Add this line!
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -97,6 +98,7 @@ export default function NewPageForm() {
           ...formData,
           content,
           isPublished, // Passes the state of the toggle
+          footerPlacement: formData.footerPlacement, // Include the footer placement
         }),
       });
 
@@ -215,6 +217,22 @@ export default function NewPageForm() {
                 />
               </button>
             </div>
+          </div>
+          {/* Navigation Placement Box */}
+          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-lg font-bold text-gray-800 mb-4 border-b pb-3">Navigation</h2>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Footer Placement</label>
+            <select 
+              name="footerPlacement" 
+              value={formData.footerPlacement} 
+              onChange={handleChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <option value="quick_links">Quick Links Column</option>
+              <option value="legal">Legal Bottom Bar</option>
+              <option value="hidden">Hide from Footer</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-2">Choose where this link appears on the storefront.</p>
           </div>
 
           {/* Action Box */}
