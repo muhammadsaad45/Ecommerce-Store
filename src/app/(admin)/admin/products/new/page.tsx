@@ -8,22 +8,30 @@ import { CldUploadWidget } from "next-cloudinary";
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  
+  // 1. Expanded state to include the new schema fields
   const [formData, setFormData] = useState({
     name: "",
+    slug: "",
+    category: "",
     description: "",
     price: "",
     stock: "",
     imageUrl: "",
+    isActive: true, // Defaults to true so products show up immediately
   });
 
+  // 2. Upgraded handleChange to support the checkbox toggle
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const target = e.target as HTMLInputElement;
+    const value = target.type === "checkbox" ? target.checked : target.value;
+    
+    setFormData({ ...formData, [target.name]: value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevent submission if they haven't uploaded an image yet!
     if (!formData.imageUrl) {
       alert("Please upload a product image first.");
       return;
@@ -48,7 +56,8 @@ export default function NewProductPage() {
         router.push("/admin/products");
         router.refresh(); 
       } else {
-        alert("Failed to save product.");
+        const errorData = await response.json();
+        alert(`Failed to save product: ${errorData.error}`);
       }
     } catch (error) {
       console.error("Network Error:", error);
@@ -68,40 +77,66 @@ export default function NewProductPage() {
 
       <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
             {/* Left Column: Text Inputs */}
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Product Name</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black outline-none focus:ring-2 focus:ring-blue-500" required />
+                <input type="text" name="name" value={formData.name} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" required />
+              </div>
+
+              {/* 3. New Slug and Category Row */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">URL Slug</label>
+                  <input type="text" name="slug" value={formData.slug} onChange={handleChange} placeholder="e.g., iphone-15" className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <input type="text" name="category" value={formData.category} onChange={handleChange} placeholder="e.g., Smartphones" className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" required />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Price ($)</label>
-                  <input type="number" name="price" min="0" step="0.01" value={formData.price} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black outline-none focus:ring-2 focus:ring-blue-500" required />
+                  <input type="number" name="price" min="0" step="0.01" value={formData.price} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Stock</label>
-                  <input type="number" name="stock" min="0" value={formData.stock} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black outline-none focus:ring-2 focus:ring-blue-500" required />
+                  <input type="number" name="stock" min="0" value={formData.stock} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
+              </div>
+
+              {/* 4. New Active Status Toggle */}
+              <div className="flex items-center pt-2">
+                <input 
+                  type="checkbox" 
+                  name="isActive" 
+                  id="isActive" 
+                  checked={formData.isActive} 
+                  onChange={handleChange} 
+                  className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer" 
+                />
+                <label htmlFor="isActive" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer">
+                  Product is Active (Visible to customers)
+                </label>
               </div>
             </div>
 
             {/* Right Column: Image Upload Area */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
-              <div className="h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 overflow-hidden relative">
+              <div className="h-56 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 overflow-hidden relative">
                 
-                {/* 2. Show the image if it exists, otherwise show the upload button */}
                 {formData.imageUrl ? (
                   <div className="w-full h-full relative">
                     <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                     <button 
                       type="button" 
                       onClick={() => setFormData({ ...formData, imageUrl: "" })}
-                      className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700"
+                      className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700 shadow-md transition-colors"
                     >
                       Remove
                     </button>
@@ -110,7 +145,6 @@ export default function NewProductPage() {
                   <CldUploadWidget 
                     uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                     onSuccess={(result: any) => {
-                      // 3. When upload succeeds, extract the secure URL and save it to state
                       if (result.info?.secure_url) {
                         setFormData({ ...formData, imageUrl: result.info.secure_url });
                       }
@@ -119,9 +153,9 @@ export default function NewProductPage() {
                     {({ open }) => {
                       return (
                         <button 
-                          type="button" // Important: prevents form submission
+                          type="button"
                           onClick={() => open()}
-                          className="bg-white text-gray-700 font-medium py-2 px-4 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50"
+                          className="bg-white text-gray-700 font-medium py-2 px-4 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
                         >
                           Upload an Image
                         </button>
@@ -135,11 +169,11 @@ export default function NewProductPage() {
 
             <div className="col-span-1 md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea name="description" rows={4} value={formData.description} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black outline-none focus:ring-2 focus:ring-blue-500" required />
+              <textarea name="description" rows={4} value={formData.description} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
             </div>
           </div>
 
-          <div className="pt-4 border-t border-gray-100 flex justify-end">
+          <div className="pt-6 border-t border-gray-100 flex justify-end">
             <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors disabled:opacity-50">
               {loading ? "Saving..." : "Save Product"}
             </button>

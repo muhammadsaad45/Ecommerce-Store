@@ -42,7 +42,7 @@ export default function FAQPage() {
           >
             <summary className="flex cursor-pointer items-center justify-between p-6 font-medium text-gray-900">
               <span className="text-lg">{faq.question}</span>
-              <span className="relative ml-1.5 h-5 w-5 flex-shrink-0">
+              <span className="relative ml-1.5 h-5 w-5 shrink-0">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   className="absolute inset-0 h-5 w-5 opacity-100 group-open:opacity-0 transition-opacity"

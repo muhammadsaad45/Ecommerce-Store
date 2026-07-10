@@ -59,7 +59,7 @@ export default async function ShopPage() {
                   </div>
                 )}
               </div>
-              <div className="p-5 flex flex-col flex-grow">
+              <div className="p-5 flex flex-col grow">
                 <p className="text-xs text-blue-600 font-bold tracking-wider uppercase mb-1">
                   {product.category || "Uncategorized"}
                 </p>
