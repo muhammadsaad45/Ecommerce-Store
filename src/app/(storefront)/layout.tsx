@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
 import Page from "@/models/Page";
+import SearchBar from "@/components/SearchBar"; 
 
 // Cache the footer for 1 hour so we don't spam the database
 export const revalidate = 3600;
@@ -9,7 +10,7 @@ async function getFooterPages() {
   try {
     await connectToDatabase();
     const pages = await Page.find({ isPublished: true }).select("title slug footerPlacement").lean();
-    return pages;
+    return JSON.parse(JSON.stringify(pages));
   } catch (error) {
     console.error("Failed to fetch footer pages:", error);
     return [];
@@ -35,9 +36,9 @@ export default async function StorefrontLayout({
             TechStore
           </Link>
           <nav className="hidden md:flex items-center space-x-8 font-medium text-gray-600">
-            <Link href="/" className="hover:text-blue-600 transition-colors">Shop</Link>
-            <Link href="/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
-            <Link href="/about" className="hover:text-blue-600 transition-colors">About</Link>
+            <Link href="/pages/shop" className="hover:text-blue-600 transition-colors">Shop</Link>
+            <Link href="/pages/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
+            <SearchBar />
           </nav>
           <div>
             <Link href="/admin" className="text-sm bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors font-medium">
