@@ -60,7 +60,7 @@ export default function EditBlogPage({ params }: { params: Promise<{ id: string 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const target = e.target as HTMLInputElement;
     const value = target.type === "checkbox" ? target.checked : target.value;
-    setFormData({ ...formData, [target.name]: value });
+    setFormData((currentFormData) => ({ ...currentFormData, [target.name]: value }));
   };
 
   const imageHandler = useCallback(() => {
@@ -204,7 +204,7 @@ export default function EditBlogPage({ params }: { params: Promise<{ id: string 
                   {formData.coverImage ? (
                     <div className="w-full h-full relative">
                       <img src={formData.coverImage} alt="Cover" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setFormData({ ...formData, coverImage: "" })} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700 shadow-md">
+                      <button type="button" onClick={() => setFormData((currentFormData) => ({ ...currentFormData, coverImage: "" }))} className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700 shadow-md">
                         Remove
                       </button>
                     </div>
@@ -213,7 +213,7 @@ export default function EditBlogPage({ params }: { params: Promise<{ id: string 
                       uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                       onSuccess={(result: any) => {
                         if (result.info?.secure_url) {
-                          setFormData({ ...formData, coverImage: result.info.secure_url });
+                          setFormData((currentFormData) => ({ ...currentFormData, coverImage: result.info.secure_url }));
                         }
                       }}
                     >

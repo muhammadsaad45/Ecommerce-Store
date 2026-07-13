@@ -29,7 +29,7 @@ export default function NewBlogPage() {
     const target = e.target as HTMLInputElement;
     const value = target.type === "checkbox" ? target.checked : target.value;
     
-    setFormData({ ...formData, [target.name]: value });
+    setFormData((currentFormData) => ({ ...currentFormData, [target.name]: value }));
   };
 
   const imageHandler = useCallback(() => {
@@ -184,7 +184,7 @@ export default function NewBlogPage() {
                       uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                       onSuccess={(result: any) => {
                         if (result.info?.secure_url) {
-                          setFormData({ ...formData, coverImage: result.info.secure_url });
+                          setFormData((currentFormData) => ({ ...currentFormData, coverImage: result.info.secure_url }));
                         }
                       }}
                     >

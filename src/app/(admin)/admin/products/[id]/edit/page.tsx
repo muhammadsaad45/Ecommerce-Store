@@ -59,7 +59,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const target = e.target as HTMLInputElement;
     const value = target.type === "checkbox" ? target.checked : target.value;
     
-    setFormData({ ...formData, [target.name]: value });
+    setFormData((currentFormData) => ({ ...currentFormData, [target.name]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,7 +170,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                     <button 
                       type="button" 
-                      onClick={() => setFormData({ ...formData, imageUrl: "" })}
+                      onClick={() => setFormData((currentFormData) => ({ ...currentFormData, imageUrl: "" }))}
                       className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700 shadow-md transition-colors"
                     >
                       Remove
@@ -181,7 +181,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
                     onSuccess={(result: any) => {
                       if (result.info?.secure_url) {
-                        setFormData({ ...formData, imageUrl: result.info.secure_url });
+                        setFormData((currentFormData) => ({ ...currentFormData, imageUrl: result.info.secure_url }));
                       }
                     }}
                   >
