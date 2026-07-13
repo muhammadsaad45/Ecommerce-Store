@@ -24,10 +24,17 @@ export default function EditPageForm({ pageData }: { pageData: any }) {
     metaTitle: pageData.metaTitle || "",
     metaDescription: pageData.metaDescription || "",
     footerPlacement: pageData.footerPlacement || "quick_links",
+    inHeader: pageData.inHeader || false,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const target = e.target as HTMLInputElement;
+    
+    // If the input is a checkbox, use the 'checked' property (true/false). 
+    // Otherwise, use the standard 'value' property.
+    const value = target.type === "checkbox" ? target.checked : target.value;
+    
+    setFormData({ ...formData, [target.name]: value });
   };
 
   // The Custom Image Interceptor
@@ -230,6 +237,19 @@ export default function EditPageForm({ pageData }: { pageData: any }) {
               <option value="hidden">Hide from Footer</option>
             </select>
             <p className="text-xs text-gray-500 mt-2">Choose where this link appears on the storefront.</p>
+          </div>
+          <div className="flex items-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <input 
+              type="checkbox" 
+              name="inHeader" 
+              id="inHeader" 
+              checked={formData.inHeader} 
+              onChange={handleChange} 
+              className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer" 
+            />
+            <label htmlFor="inHeader" className="ml-3 block text-sm font-medium text-gray-700 cursor-pointer">
+              Pin this page to the top Header Navbar
+            </label>
           </div>
 
           <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">

@@ -6,6 +6,25 @@ import SearchBar from "@/components/SearchBar";
 // Cache the footer for 1 hour so we don't spam the database
 export const revalidate = 3600;
 
+async function getHeaderPages() {
+  try {
+    await connectToDatabase();
+    
+    // CRITICAL FIX: Only fetch pages pinned to the header THAT ARE ALSO PUBLISHED
+    const pages = await Page.find({ 
+      inHeader: true, 
+      isPublished: true // Bypasses drafts so they stay hidden!
+    })
+    .select("title slug")
+    .lean();
+      
+    return JSON.parse(JSON.stringify(pages));
+  } catch (error) {
+    console.error("Failed to fetch header pages:", error);
+    return [];
+  }
+}
+
 async function getFooterPages() {
   try {
     await connectToDatabase();
@@ -24,6 +43,7 @@ export default async function StorefrontLayout({
 }) {
   // Fetch the pages before rendering the layout
   const footerPages = await getFooterPages();
+  const headerPages = await getHeaderPages();
   const quickLinks = footerPages.filter((page: any) => page.footerPlacement === 'quick_links' || !page.footerPlacement);
   const legalLinks = footerPages.filter((page: any) => page.footerPlacement === 'legal');
 
@@ -35,11 +55,25 @@ export default async function StorefrontLayout({
           <Link href="/" className="text-2xl font-bold text-blue-600 tracking-tight">
             TechStore
           </Link>
+          
           <nav className="hidden md:flex items-center space-x-8 font-medium text-gray-600">
-            <Link href="/pages/shop" className="hover:text-blue-600 transition-colors">Shop</Link>
-            <Link href="/pages/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
+            <Link href="/" className="hover:text-blue-600 transition-colors">Shop</Link>
+            <Link href="/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
+            
+            {/* 3. Inject the dynamic CMS pages right before the Search Bar */}
+            {headerPages.map((page: any) => (
+              <Link 
+                key={page._id} 
+                href={`/pages/${page.slug}`} 
+                className="hover:text-blue-600 transition-colors capitalize"
+              >
+                {page.title}
+              </Link>
+            ))}
+
             <SearchBar />
           </nav>
+          
           <div>
             <Link href="/admin" className="text-sm bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors font-medium">
               Admin Panel

@@ -11,6 +11,10 @@ const pageSchema = new mongoose.Schema(
       enum: ['quick_links', 'legal', 'hidden'],
       default: 'quick_links',
     },
+    inHeader: {
+      type: Boolean,
+      default: false,
+    },
     metaTitle: { type: String, default: "" },
     metaDescription: { type: String, default: "" },
   },
