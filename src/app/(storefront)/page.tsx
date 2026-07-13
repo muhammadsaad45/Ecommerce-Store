@@ -3,6 +3,8 @@ import Product from "@/models/Product";
 import Link from "next/link";
 import HeroCarousel from "@/components/HeroCarousel"; 
 
+export const dynamic = "force-dynamic";
+
 export const revalidate = 0;
 
 async function getProducts() {
@@ -67,7 +69,7 @@ export default async function StoreHomepage() {
                   </div>
 
                   <Link 
-                    href={`/products/${product._id.toString()}`}
+                    href={`/products/${product.slug.toString()}`}
                     className="mt-4 w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-center font-semibold py-2.5 rounded-lg transition-colors block"
                   >
                     View Details

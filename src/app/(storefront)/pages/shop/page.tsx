@@ -39,45 +39,49 @@ export default async function ShopPage() {
         </div>
       ) : (
         // The Product Grid
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {products.map((product: any) => (
-            <Link 
-              key={product._id.toString()} 
-              href={`/products/${product.slug || product._id.toString()}`}
-              className="group flex flex-col bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300"
-            >
-              <div className="aspect-square bg-gray-100 overflow-hidden relative">
-                {product.imageUrl ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+            {products.map((product: any) => (
+              <div 
+                key={product._id.toString()} 
+                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-full group"
+              >
+                <div className="h-56 w-full bg-gray-100 relative overflow-hidden border-b border-gray-100">
                   <img 
-                    src={product.imageUrl} 
+                    src={product.imageUrl || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=500"} 
                     alt={product.name} 
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    No Image
+                </div>
+
+                <div className="p-5 flex flex-col grow">
+                  <h2 className="font-bold text-lg text-gray-800 mb-1 line-clamp-1">
+                    {product.name}
+                  </h2>
+                  <p className="text-gray-500 text-sm mb-4 line-clamp-2 grow">
+                    {product.description}
+                  </p>
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                    <span className="text-xl font-extrabold text-gray-900">
+                      ${product.price.toFixed(2)}
+                    </span>
+                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      product.stock > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    }`}>
+                      {product.stock > 0 ? "In Stock" : "Out of Stock"}
+                    </span>
                   </div>
-                )}
-              </div>
-              <div className="p-5 flex flex-col grow">
-                <p className="text-xs text-blue-600 font-bold tracking-wider uppercase mb-1">
-                  {product.category || "Uncategorized"}
-                </p>
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                  {product.name}
-                </h3>
-                <div className="mt-auto pt-4 flex items-center justify-between border-t border-gray-100">
-                  <span className="text-xl font-extrabold text-gray-900">
-                    ${product.price.toFixed(2)}
-                  </span>
-                  <span className="text-sm font-medium text-blue-600 group-hover:translate-x-1 transition-transform">
-                    View &rarr;
-                  </span>
+
+                  <Link 
+                    href={`/products/${product.slug.toString()}`}
+                    className="mt-4 w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-center font-semibold py-2.5 rounded-lg transition-colors block"
+                  >
+                    View Details
+                  </Link>
                 </div>
               </div>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </div>
       )}
     </div>
   );
