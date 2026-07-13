@@ -37,6 +37,12 @@ export default function AdminSidebar() {
         >
           Pages
         </Link>
+        <Link 
+          href="/admin/blogs" 
+          className="block px-4 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          Blogs
+        </Link>
       </nav>
 
       {/* Bottom Action Area */}
