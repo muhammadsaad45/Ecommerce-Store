@@ -25,3 +25,23 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* --- React Quill Custom Overrides --- */
+.ql-container {
+  min-height: 350px !important;
+  font-size: 16px !important;
+  border-bottom-left-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.ql-editor {
+  min-height: 350px !important;
+  max-height: 600px !important; /* Forces it to scroll after a certain point */
+  overflow-y: auto !important;
+}
+
+.ql-toolbar {
+  border-top-left-radius: 0.5rem;
+  border-top-right-radius: 0.5rem;
+  background-color: #f9fafb;
+}

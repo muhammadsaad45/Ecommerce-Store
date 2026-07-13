@@ -167,8 +167,7 @@ export default function NewPageForm() {
                   theme="snow" 
                   value={content} 
                   onChange={setContent} 
-                  modules={modules}
-                  className="h-80" 
+                  modules={modules} 
                 />
               </div>
             </div>

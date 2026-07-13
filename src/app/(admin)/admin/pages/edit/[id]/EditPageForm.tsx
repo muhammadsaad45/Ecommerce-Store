@@ -168,7 +168,6 @@ export default function EditPageForm({ pageData }: { pageData: any }) {
                   value={content} 
                   onChange={setContent}
                   modules={modules} 
-                  className="h-80" 
                 />
               </div>
             </div>

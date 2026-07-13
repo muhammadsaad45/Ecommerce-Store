@@ -25,13 +25,10 @@ export default async function CustomStorefrontPage({ params, searchParams }: Pag
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
   
-  // Check if the URL has ?preview=true
   const isPreview = resolvedSearchParams.preview === "true";
   
   await connectToDatabase();
   
-  // If preview mode is active, fetch the page regardless of status.
-  // Otherwise, strictly enforce that it must be published.
   const query = isPreview 
     ? { slug: resolvedParams.slug } 
     : { slug: resolvedParams.slug, isPublished: true };
@@ -41,6 +38,14 @@ export default async function CustomStorefrontPage({ params, searchParams }: Pag
   if (!pageData) {
     notFound(); 
   }
+
+  // --- NEW: AUTOMATED CONTENT SANITIZER ---
+  // This cleans up bad non-breaking spaces and layout ghosts pasted from text editors
+  const cleanContent = pageData.content
+    ? pageData.content
+        .replace(/&nbsp;/g, " ") // Converts un-wrappable spaces into natural spaces
+        .replace(/\u00ad/g, "")  // Obliterates soft-hyphen rendering ghosts
+    : "";
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8 bg-white mt-10 rounded-2xl shadow-sm border border-gray-100">
@@ -60,9 +65,10 @@ export default async function CustomStorefrontPage({ params, searchParams }: Pag
         {pageData.title}
       </h1>
       
+      {/* Render the sanitized content string using clean natural wrapping */}
       <div 
-        className="prose prose-lg prose-blue max-w-none text-gray-700"
-        dangerouslySetInnerHTML={{ __html: pageData.content }}
+        className="prose prose-lg prose-blue max-w-none text-gray-600 overflow-hidden break-words"
+        dangerouslySetInnerHTML={{ __html: cleanContent }}
       />
     </div>
   );
