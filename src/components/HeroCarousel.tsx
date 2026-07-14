@@ -36,7 +36,7 @@ export default function HeroCarousel() {
   }, []);
 
   return (
-    <div className="relative h-[400px] md:h-[550px] w-full overflow-hidden mb-12">
+    <div className="relative h-100 md:h-137.5 w-full overflow-hidden mb-12">
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -54,7 +54,7 @@ export default function HeroCarousel() {
               {slide.subtitle}
             </p>
             <Link 
-              href="#catalog" 
+              href="/pages/shop" 
               className="bg-white text-black px-8 py-3 rounded-full font-bold w-max hover:bg-gray-200 transition-colors shadow-lg"
             >
               Shop Now

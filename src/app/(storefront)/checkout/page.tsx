@@ -27,12 +27,40 @@ export default function CheckoutPage() {
     e.preventDefault();
     setIsProcessing(true);
 
-    // Right now this is a simulation. In Phase 2, we will send this data to MongoDB!
-    setTimeout(() => {
-      alert(`Order placed successfully for $${finalTotal.toFixed(2)}!`);
-      clearCart(); // Empty the global cart
-      router.push("/"); // Send them back to the home page
-    }, 1500);
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer: formData,
+          items: cart.map((item) => ({
+            product: item._id,
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+          })),
+          subtotal: cartTotal,
+          shippingCost,
+          total: finalTotal,
+        }),
+      });
+
+      // --- NEW LOGIC HERE ---
+      const data = await response.json();
+
+      if (response.ok) {
+        clearCart(); 
+        // Route them to the new dynamic order page using the database ID!
+        router.push(`/order/${data.orderNumber.toString()}`); 
+      } else {
+        alert("Something went wrong processing your order. Please try again.");
+        setIsProcessing(false);
+      }
+    } catch (error) {
+      console.error("Checkout connection error:", error);
+      alert("Failed to connect to the secure server.");
+      setIsProcessing(false);
+    }
   };
 
   // If the user navigates here with an empty cart, bounce them back!
