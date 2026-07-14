@@ -66,9 +66,8 @@ export default async function StorefrontLayout({
             {/* 2. CENTER: Navigation Links & Search */}
             {/* Added flex-1 and justify-center to dynamically center this block */}
             <nav className="hidden md:flex flex-1 items-center justify-center space-x-8 font-medium text-gray-600 px-8">
-              {/* Note: Updated these back to "/" and "/categories" to avoid 404s! */}
-              <Link href="/" className="hover:text-blue-600 transition-colors">Shop</Link>
-              <Link href="/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
+              <Link href="/pages/shop" className="hover:text-blue-600 transition-colors">Shop</Link>
+              <Link href="/pages/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
               
               {/* Dynamic CMS pages */}
               {headerPages.map((page: any) => (
