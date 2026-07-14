@@ -4,6 +4,23 @@ import Page from "@/models/Page";
 import SearchBar from "@/components/SearchBar"; 
 import { CartProvider } from "@/context/CartContext";
 import CartMenu from "@/components/CartMenu";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  // This creates a dynamic template! 
+  // If a page says title: "Cart", the browser tab will say "Cart | TechStore"
+  title: {
+    template: "%s | TechStore",
+    default: "TechStore | Premium Electronics & Tech Gear", // The fallback
+  },
+  description: "Shop the latest in premium electronics, laptops, and accessories.",
+  openGraph: {
+    title: "TechStore",
+    description: "Your ultimate destination for the best tech gear.",
+    siteName: "TechStore",
+    type: "website",
+  },
+};
 
 // Cache the footer for 1 hour so we don't spam the database
 export const revalidate = 3600;
@@ -40,9 +57,9 @@ async function getFooterPages() {
 
 export default async function StorefrontLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+  }: {
+    children: React.ReactNode;
+  }) {
   // Fetch the pages before rendering the layout
   const footerPages = await getFooterPages();
   const headerPages = await getHeaderPages();
