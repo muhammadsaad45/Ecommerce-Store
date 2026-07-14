@@ -68,6 +68,7 @@ export default async function StorefrontLayout({
             <nav className="hidden md:flex flex-1 items-center justify-center space-x-8 font-medium text-gray-600 px-8">
               <Link href="/pages/shop" className="hover:text-blue-600 transition-colors">Shop</Link>
               <Link href="/pages/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
+              <Link href="/blogs" className="hover:text-blue-600 transition-colors">Blogs</Link>
               
               {/* Dynamic CMS pages */}
               {headerPages.map((page: any) => (
