@@ -4,13 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CldUploadWidget } from "next-cloudinary";
+import ProductSpecsBuilder, { Spec } from "@/components/ProductSpecsBuilder";
+
+interface ProductFormData {
+  name: string;
+  slug: string;
+  category: string;
+  description: string;
+  price: string; // Changed to string (HTML inputs handle strings)
+  stock: string; // Changed to string (HTML inputs handle strings)
+  imageUrl: string;
+  isActive: boolean; // Added your new toggle!
+  specs: Spec[];
+}
 
 export default function NewProductPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   
   // 1. Expanded state to include the new schema fields
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     slug: "",
     category: "",
@@ -18,7 +31,8 @@ export default function NewProductPage() {
     price: "",
     stock: "",
     imageUrl: "",
-    isActive: true, // Defaults to true so products show up immediately
+    isActive: true, 
+    specs: [], // TypeScript now looks at the blueprint and knows this is Spec[]
   });
 
   // 2. Upgraded handleChange to support the checkbox toggle
@@ -172,6 +186,11 @@ export default function NewProductPage() {
               <textarea name="description" rows={4} value={formData.description} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
             </div>
           </div>
+
+          <ProductSpecsBuilder 
+            specs={formData.specs}
+            onChange={(updatedSpecs) => setFormData({ ...formData, specs: updatedSpecs })}
+          />
 
           <div className="pt-6 border-t border-gray-100 flex justify-end">
             <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors disabled:opacity-50">

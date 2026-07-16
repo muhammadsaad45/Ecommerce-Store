@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import AddToCart from "@/components/AddToCart";
 import mongoose from "mongoose";
+import ProductSpecs from "@/components/ProductSpecs";
 
 // 1. Dynamic SEO Metadata Generation
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -46,9 +47,17 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   }
 
   // Safely serialize the Mongoose document for the Client Component
+  // Safely serialize the Mongoose document for the Client Component
   const product = {
     ...rawProduct,
     _id: rawProduct._id.toString(),
+    // NEW: We map over the specs and explicitly only return the text strings, 
+    // leaving the MongoDB _id behind on the server!
+    specs: rawProduct.specs?.map((spec: any) => ({
+      group: spec.group,
+      key: spec.key,
+      value: spec.value,
+    })) || [],
   };
 
   return (
@@ -56,13 +65,14 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       
       {/* Breadcrumb Navigation */}
       <nav className="mb-8 flex items-center text-sm font-medium text-gray-500">
-        <Link href="/" className="hover:text-blue-600 transition-colors">Shop</Link>
+        <Link href="/pages/shop" className="hover:text-blue-600 transition-colors">Shop</Link>
         <span className="mx-2">&rsaquo;</span>
-        <Link href={`/categories`} className="hover:text-blue-600 transition-colors">Categories</Link>
+        <Link href={`/pages/categories`} className="hover:text-blue-600 transition-colors">Categories</Link>
         <span className="mx-2">&rsaquo;</span>
         <span className="text-gray-900 capitalize">{product.category}</span>
       </nav>
 
+      {/* TOP SECTION: Image and Core Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
         
         {/* Left Column: Product Image */}
@@ -100,7 +110,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
             </p>
           </div>
 
-          {/* Injecting our Interactive Client Component */}
           <div className="mt-auto">
             <AddToCart product={product} />
           </div>
@@ -123,6 +132,11 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
           
         </div>
       </div>
+
+      {/* BOTTOM SECTION: Dynamic Specifications Matrix */}
+      {/* We moved it down here so it has room to expand fully! */}
+      <ProductSpecs specs={product.specs} />
+
     </div>
   );
 }

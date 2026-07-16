@@ -5,6 +5,22 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CldUploadWidget } from "next-cloudinary";
 
+// 1. Import the Builder and Spec interface
+import ProductSpecsBuilder, { Spec } from "@/components/ProductSpecsBuilder";
+
+// 2. Define the exact blueprint so TypeScript knows about specs
+interface ProductFormData {
+  name: string;
+  slug: string;
+  category: string;
+  description: string;
+  price: string;
+  stock: string;
+  imageUrl: string;
+  isActive: boolean;
+  specs: Spec[]; // <-- Explicitly added to the blueprint
+}
+
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { id } = use(params);
@@ -12,8 +28,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   
-  // 1. Expanded state to match the new schema
-  const [formData, setFormData] = useState({
+  // 3. Attach the blueprint to useState and initialize specs
+  const [formData, setFormData] = useState<ProductFormData>({
     name: "",
     slug: "",
     category: "",
@@ -22,6 +38,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     stock: "",
     imageUrl: "",
     isActive: true,
+    specs: [],
   });
 
   useEffect(() => {
@@ -30,7 +47,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         const response = await fetch(`/api/products/${id}`);
         if (response.ok) {
           const data = await response.json();
-          // 2. Pre-fill the new fields from the database
+          // 4. Pre-fill the fields AND safely map the incoming database specs
           setFormData({
             name: data.name || "",
             slug: data.slug || "",
@@ -40,6 +57,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             stock: data.stock ? data.stock.toString() : "0",
             imageUrl: data.imageUrl || "",
             isActive: data.isActive !== undefined ? data.isActive : true,
+            // Strip out hidden MongoDB _id tags before handing data to the client component
+            specs: data.specs?.map((spec: any) => ({
+              group: spec.group,
+              key: spec.key,
+              value: spec.value,
+            })) || [],
           });
         } else {
           alert("Could not find product.");
@@ -54,7 +77,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     fetchProduct();
   }, [id]);
 
-  // 3. Upgraded handleChange to support the checkbox toggle
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const target = e.target as HTMLInputElement;
     const value = target.type === "checkbox" ? target.checked : target.value;
@@ -207,6 +229,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <textarea name="description" rows={4} value={formData.description} onChange={handleChange} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
             </div>
           </div>
+
+          {/* 5. Inject the Spec Builder Matrix Component */}
+          <ProductSpecsBuilder 
+            specs={formData.specs}
+            onChange={(updatedSpecs) => setFormData({ ...formData, specs: updatedSpecs })}
+          />
 
           <div className="pt-6 border-t border-gray-100 flex justify-end">
             <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-md transition-colors disabled:opacity-50">

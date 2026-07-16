@@ -1,5 +1,23 @@
 import mongoose, { Schema, model, models } from "mongoose";
 
+export interface ISpecification {
+  key: string;
+  value: string;
+  group: string; // e.g., "Display", "Performance", "Camera"
+}
+
+export interface IProduct extends Document {
+  name: string;
+  slug: string;
+  price: number;
+  description: string;
+  imageUrl: string;
+  category: string;
+  stock: number;
+  isActive: boolean;
+  specs: ISpecification[]; // <-- NEW: Dynamic spec array
+}
+
 const productSchema = new Schema(
   {
     name: {
@@ -51,10 +69,36 @@ const productSchema = new Schema(
   }
 );
 
+const ProductSchema = new Schema<IProduct>(
+  {
+    name: { type: String, required: true },
+    slug: { type: String, required: true, unique: true },
+    price: { type: Number, required: true },
+    description: { type: String, required: true },
+    imageUrl: { type: String, required: true },
+    category: { type: String, required: true },
+    stock: { type: Number, required: true, default: 0 },
+    isActive: { type: Boolean, default: true },
+    
+    // The matrix configuration
+    specs: [
+      {
+        key: { type: String, required: true },
+        value: { type: String, required: true },
+        group: { type: String, required: true }, // Used to categorize chunks
+      },
+    ],
+  },
+  { timestamps: true }
+);
+
 // 1. Force Mongoose to delete the old cached version of the model
 delete mongoose.models.Product;
 
 // 2. Recompile the fresh, updated schema
 const Product = models.Product || model("Product", productSchema);
 
-export default Product;
+if (process.env.NODE_ENV === "development") {
+  delete mongoose.models.Product;
+}
+export default mongoose.models.Product || mongoose.model<IProduct>("Product", ProductSchema);
