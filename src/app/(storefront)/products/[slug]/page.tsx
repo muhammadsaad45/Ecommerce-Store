@@ -5,6 +5,13 @@ import Link from "next/link";
 import AddToCart from "@/components/AddToCart";
 import mongoose from "mongoose";
 import ProductSpecs from "@/components/ProductSpecs";
+import ProductImageGallery from "@/components/ProductImageGallery";
+
+type ProductSpecPayload = {
+  group?: string;
+  key?: string;
+  value?: string;
+};
 
 // 1. Dynamic SEO Metadata Generation
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -24,7 +31,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: `${rawProduct.name} | TechStore`,
     description: rawProduct.description.substring(0, 160),
     openGraph: {
-      images: [rawProduct.imageUrl],
+      images: [rawProduct.imageUrl, ...(rawProduct.images || [])].filter(Boolean),
     },
   };
 }
@@ -51,9 +58,10 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
   const product = {
     ...rawProduct,
     _id: rawProduct._id.toString(),
+    images: rawProduct.images?.length > 0 ? rawProduct.images : rawProduct.imageUrl ? [rawProduct.imageUrl] : [],
     // NEW: We map over the specs and explicitly only return the text strings, 
     // leaving the MongoDB _id behind on the server!
-    specs: rawProduct.specs?.map((spec: any) => ({
+    specs: rawProduct.specs?.map((spec: ProductSpecPayload) => ({
       group: spec.group,
       key: spec.key,
       value: spec.value,
@@ -76,18 +84,7 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 xl:gap-16">
         
         {/* Left Column: Product Image */}
-        <div className="bg-gray-50 rounded-3xl p-8 flex items-center justify-center border border-gray-100 relative group overflow-hidden">
-          {product.stock <= 0 && (
-            <div className="absolute top-6 right-6 bg-red-600 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider z-10 shadow-sm">
-              Out of Stock
-            </div>
-          )}
-          <img 
-            src={product.imageUrl} 
-            alt={product.name} 
-            className="w-full max-w-md object-contain aspect-square mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-          />
-        </div>
+        <ProductImageGallery images={product.images} alt={product.name} stock={product.stock} />
 
         {/* Right Column: Product Info & Actions */}
         <div className="flex flex-col pt-4">

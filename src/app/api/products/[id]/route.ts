@@ -2,6 +2,27 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
 
+type ProductImagePayload = {
+  imageUrl?: unknown;
+  images?: unknown;
+  [key: string]: unknown;
+};
+
+function normalizeProductImages(body: ProductImagePayload) {
+  const images = Array.isArray(body.images)
+    ? body.images.filter((image): image is string => typeof image === "string" && image.trim().length > 0)
+    : [];
+  const primaryImage = typeof body.imageUrl === "string" && body.imageUrl.trim().length > 0
+    ? body.imageUrl.trim()
+    : images[0] || "";
+
+  return {
+    ...body,
+    imageUrl: primaryImage,
+    images: images.length > 0 ? images : primaryImage ? [primaryImage] : [],
+  };
+}
+
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
@@ -17,7 +38,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     }
     
     return NextResponse.json(product);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to fetch product" }, { status: 500 });
   }
 }
@@ -25,15 +46,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     await connectToDatabase();
-    const body = await request.json();
+    const body = (await request.json()) as ProductImagePayload;
+    const normalizedBody = normalizeProductImages(body);
     
     // 1. Await the params Promise here too
     const { id } = await params;
     
-    const updatedProduct = await Product.findByIdAndUpdate(id, body, { new: true });
+    const updatedProduct = await Product.findByIdAndUpdate(id, normalizedBody, { new: true });
     
     return NextResponse.json({ success: true, product: updatedProduct });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to update product" }, { status: 500 });
   }
 }
@@ -54,7 +76,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     }
     
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Failed to delete product" }, { status: 500 });
   }
 }

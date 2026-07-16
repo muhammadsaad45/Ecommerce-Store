@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CldUploadWidget } from "next-cloudinary";
+import ProductImageManager from "@/components/ProductImageManager";
 
 // 1. Import the Builder and Spec interface
 import ProductSpecsBuilder, { Spec } from "@/components/ProductSpecsBuilder";
@@ -17,9 +17,16 @@ interface ProductFormData {
   price: string;
   stock: string;
   imageUrl: string;
+  images: string[];
   isActive: boolean;
   specs: Spec[]; // <-- Explicitly added to the blueprint
 }
+
+type ProductSpecPayload = {
+  group?: string;
+  key?: string;
+  value?: string;
+};
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
@@ -37,9 +44,18 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     price: "",
     stock: "",
     imageUrl: "",
+    images: [],
     isActive: true,
     specs: [],
   });
+
+  const syncImages = (images: string[]) => {
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      images,
+      imageUrl: images[0] || "",
+    }));
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -55,10 +71,11 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             description: data.description || "",
             price: data.price ? data.price.toString() : "0",
             stock: data.stock ? data.stock.toString() : "0",
-            imageUrl: data.imageUrl || "",
+            imageUrl: data.imageUrl || data.images?.[0] || "",
+            images: data.images?.length > 0 ? data.images : data.imageUrl ? [data.imageUrl] : [],
             isActive: data.isActive !== undefined ? data.isActive : true,
             // Strip out hidden MongoDB _id tags before handing data to the client component
-            specs: data.specs?.map((spec: any) => ({
+            specs: data.specs?.map((spec: ProductSpecPayload) => ({
               group: spec.group,
               key: spec.key,
               value: spec.value,
@@ -87,7 +104,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.imageUrl) {
+    if (formData.images.length === 0) {
       alert("Please upload a product image first.");
       return;
     }
@@ -98,7 +115,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
       const formattedData = {
         ...formData,
         price: Number(formData.price),
-        stock: Number(formData.stock)
+        stock: Number(formData.stock),
+        imageUrl: formData.images[0] || formData.imageUrl,
+        images: formData.images,
       };
 
       const response = await fetch(`/api/products/${id}`, {
@@ -184,44 +203,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
             {/* Right Column: Image Upload Area */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
-              <div className="h-56 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 overflow-hidden relative">
-                
-                {formData.imageUrl ? (
-                  <div className="w-full h-full relative">
-                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                    <button 
-                      type="button" 
-                      onClick={() => setFormData((currentFormData) => ({ ...currentFormData, imageUrl: "" }))}
-                      className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700 shadow-md transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <CldUploadWidget 
-                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                    onSuccess={(result: any) => {
-                      if (result.info?.secure_url) {
-                        setFormData((currentFormData) => ({ ...currentFormData, imageUrl: result.info.secure_url }));
-                      }
-                    }}
-                  >
-                    {({ open }) => {
-                      return (
-                        <button 
-                          type="button"
-                          onClick={() => open()}
-                          className="bg-white text-gray-700 font-medium py-2 px-4 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
-                        >
-                          Upload New Image
-                        </button>
-                      );
-                    }}
-                  </CldUploadWidget>
-                )}
-                
-              </div>
+              <ProductImageManager images={formData.images} onChange={syncImages} label="Product Images" />
             </div>
 
             <div className="col-span-1 md:col-span-2">
