@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CldUploadWidget } from "next-cloudinary";
+import ProductImageManager from "@/components/ProductImageManager";
 import ProductSpecsBuilder, { Spec } from "@/components/ProductSpecsBuilder";
 
 interface ProductFormData {
@@ -14,6 +14,7 @@ interface ProductFormData {
   price: string; // Changed to string (HTML inputs handle strings)
   stock: string; // Changed to string (HTML inputs handle strings)
   imageUrl: string;
+  images: string[];
   isActive: boolean; // Added your new toggle!
   specs: Spec[];
 }
@@ -31,9 +32,18 @@ export default function NewProductPage() {
     price: "",
     stock: "",
     imageUrl: "",
+    images: [],
     isActive: true, 
     specs: [], // TypeScript now looks at the blueprint and knows this is Spec[]
   });
+
+  const syncImages = (images: string[]) => {
+    setFormData((currentFormData) => ({
+      ...currentFormData,
+      images,
+      imageUrl: images[0] || "",
+    }));
+  };
 
   // 2. Upgraded handleChange to support the checkbox toggle
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -46,7 +56,7 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.imageUrl) {
+    if (formData.images.length === 0) {
       alert("Please upload a product image first.");
       return;
     }
@@ -57,7 +67,9 @@ export default function NewProductPage() {
       const formattedData = {
         ...formData,
         price: Number(formData.price),
-        stock: Number(formData.stock)
+        stock: Number(formData.stock),
+        imageUrl: formData.images[0] || formData.imageUrl,
+        images: formData.images,
       };
 
       const response = await fetch("/api/products", {
@@ -141,44 +153,7 @@ export default function NewProductPage() {
 
             {/* Right Column: Image Upload Area */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
-              <div className="h-56 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 overflow-hidden relative">
-                
-                {formData.imageUrl ? (
-                  <div className="w-full h-full relative">
-                    <img src={formData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                    <button 
-                      type="button" 
-                        onClick={() => setFormData((currentFormData) => ({ ...currentFormData, imageUrl: "" }))}
-                      className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full text-xs px-2 hover:bg-red-700 shadow-md transition-colors"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ) : (
-                  <CldUploadWidget 
-                    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                    onSuccess={(result: any) => {
-                      if (result.info?.secure_url) {
-                        setFormData((currentFormData) => ({ ...currentFormData, imageUrl: result.info.secure_url }));
-                      }
-                    }}
-                  >
-                    {({ open }) => {
-                      return (
-                        <button 
-                          type="button"
-                          onClick={() => open()}
-                          className="bg-white text-gray-700 font-medium py-2 px-4 border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 transition-colors"
-                        >
-                          Upload an Image
-                        </button>
-                      );
-                    }}
-                  </CldUploadWidget>
-                )}
-                
-              </div>
+              <ProductImageManager images={formData.images} onChange={syncImages} label="Product Images" />
             </div>
 
             <div className="col-span-1 md:col-span-2">
