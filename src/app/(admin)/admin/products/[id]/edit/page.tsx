@@ -33,6 +33,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             name: data.name || "",
             slug: data.slug || "",
             category: data.category || "",
+            categorySlug: data.categorySlug || "",
             description: data.description || "",
             price: data.price ? data.price.toString() : "0",
             stock: data.stock ? data.stock.toString() : "0",

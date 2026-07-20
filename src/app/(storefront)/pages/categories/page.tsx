@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { connectToDatabase } from "@/lib/mongodb";
-import Product from "@/models/Product";
+import { getMergedProductCategories } from "@/lib/productCategoryQueries";
 
 export const metadata = {
   title: "Shop by Category | TechStore",
@@ -8,13 +7,7 @@ export const metadata = {
 };
 
 export default async function CategoriesPage() {
-  await connectToDatabase();
-  
-  // Scans all products and returns an array of unique category names
-  const uniqueCategories: string[] = await Product.distinct("category", { isActive: true });
-  
-  // Filter out any blank or undefined categories just in case
-  const categories = uniqueCategories.filter(Boolean).sort();
+  const categories = (await getMergedProductCategories()).map((category) => category.name).filter(Boolean).sort();
 
   return (
     <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 mt-4">

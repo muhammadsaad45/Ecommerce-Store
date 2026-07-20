@@ -4,11 +4,19 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProductImageManager from "@/components/ProductImageManager";
 import ProductSpecsBuilder, { Spec } from "@/components/ProductSpecsBuilder";
+import ProductCategoryEditor from "@/components/ProductCategoryEditor";
+import {
+  buildSpecsFromSchema,
+  DEFAULT_PRODUCT_CATEGORIES,
+  ProductCategoryDefinition,
+  slugifyCategoryName,
+} from "@/lib/productCatalog";
 
 export interface ProductFormData {
   name: string;
   slug: string;
   category: string;
+  categorySlug: string;
   description: string;
   price: string;
   stock: string;
@@ -28,6 +36,7 @@ export function createEmptyProductFormData(): ProductFormData {
     name: "",
     slug: "",
     category: "",
+    categorySlug: "",
     description: "",
     price: "",
     stock: "",
@@ -49,10 +58,74 @@ interface ProductFormProps {
 export default function ProductForm({ title, submitLabel, loadingLabel, initialData, onSubmit }: ProductFormProps) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<ProductFormData>(initialData);
+  const [categories, setCategories] = useState<ProductCategoryDefinition[]>(DEFAULT_PRODUCT_CATEGORIES);
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState(initialData.categorySlug || slugifyCategoryName(initialData.category));
+  const [showCategoryEditor, setShowCategoryEditor] = useState(false);
 
   useEffect(() => {
     setFormData(initialData);
+    setSelectedCategorySlug(initialData.categorySlug || slugifyCategoryName(initialData.category));
   }, [initialData]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetch("/api/product-categories");
+        if (!response.ok) {
+          return;
+        }
+
+        const data = await response.json();
+
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(data.categories);
+        }
+      } catch (error) {
+        console.error("Failed to load product categories:", error);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCategorySlug || categories.length === 0) {
+      if (!selectedCategorySlug && categories[0]) {
+        setSelectedCategorySlug(categories[0].slug);
+      }
+
+      return;
+    }
+
+    const selectedCategory = categories.find((category) => category.slug === selectedCategorySlug);
+
+    if (!selectedCategory) {
+      return;
+    }
+
+    setFormData((currentFormData) => {
+      const nextSpecs = buildSpecsFromSchema(selectedCategory, currentFormData.specs);
+      const categoryMatches = currentFormData.category === selectedCategory.name && currentFormData.categorySlug === selectedCategory.slug;
+      const specsMatch = JSON.stringify(nextSpecs) === JSON.stringify(currentFormData.specs);
+
+      if (categoryMatches && specsMatch) {
+        return currentFormData;
+      }
+
+      return {
+        ...currentFormData,
+        category: selectedCategory.name,
+        categorySlug: selectedCategory.slug,
+        specs: nextSpecs,
+      };
+    });
+  }, [categories, selectedCategorySlug]);
+
+  const handleCategoryCreated = (category: ProductCategoryDefinition) => {
+    setCategories((currentCategories) => [...currentCategories, category].sort((a, b) => a.name.localeCompare(b.name)));
+    setSelectedCategorySlug(category.slug);
+    setShowCategoryEditor(false);
+  };
 
   const syncImages = (images: string[]) => {
     setFormData((currentFormData) => ({
@@ -119,7 +192,19 @@ export default function ProductForm({ title, submitLabel, loadingLabel, initialD
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                  <input type="text" name="category" value={formData.category} onChange={handleChange} placeholder="e.g., Smartphones" className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500" required />
+                  <div className="flex gap-2">
+                    <select value={selectedCategorySlug} onChange={(e) => setSelectedCategorySlug(e.target.value)} className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 outline-none focus:ring-2 focus:ring-blue-500 bg-white" required>
+                      <option value="" disabled>Select a category</option>
+                      {categories.map((category) => (
+                        <option key={category.slug} value={category.slug}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => setShowCategoryEditor(true)} className="shrink-0 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100">
+                      New
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -160,6 +245,7 @@ export default function ProductForm({ title, submitLabel, loadingLabel, initialD
           </div>
 
           <ProductSpecsBuilder
+            schema={categories.find((category) => category.slug === selectedCategorySlug) || null}
             specs={formData.specs}
             onChange={(updatedSpecs) => setFormData((currentFormData) => ({ ...currentFormData, specs: updatedSpecs }))}
           />
@@ -171,6 +257,12 @@ export default function ProductForm({ title, submitLabel, loadingLabel, initialD
           </div>
         </form>
       </div>
+
+      <ProductCategoryEditor
+        open={showCategoryEditor}
+        onClose={() => setShowCategoryEditor(false)}
+        onCreated={handleCategoryCreated}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import Product from "@/models/Product";
 import Link from "next/link";
 import { Suspense } from "react";
 import FilterSidebar from "@/components/FilterSidebar";
+import { getMergedProductCategories } from "@/lib/productCategoryQueries";
 
 interface SearchPageProps {
   searchParams: Promise<{ 
@@ -48,9 +49,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   ]);
 
   // Clean up categories
-  const uniqueCategories = Array.from(
-    new Set(filterData[0].rawCategories.map((c: any) => c._id?.trim().toLowerCase()))
-  ).filter(Boolean).map((c: any) => c.charAt(0).toUpperCase() + c.slice(1)); 
+  const uniqueCategories = (await getMergedProductCategories()).map((category) => category.name);
 
   // Format dynamic specs { Brand: ["Apple", "Samsung"], Processor: ["Snapdragon", "A15"] }
   const dynamicSpecs: Record<string, string[]> = {};
