@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { connectToDatabase } from "@/lib/mongodb";
-import Product from "@/models/Product";
+import { getMergedProductCategories } from "@/lib/productCategoryQueries";
 
 export const metadata = {
   title: "Shop by Category | TechStore",
@@ -8,13 +7,7 @@ export const metadata = {
 };
 
 export default async function CategoriesPage() {
-  await connectToDatabase();
-  
-  // Scans all products and returns an array of unique category names
-  const uniqueCategories: string[] = await Product.distinct("category", { isActive: true });
-  
-  // Filter out any blank or undefined categories just in case
-  const categories = uniqueCategories.filter(Boolean).sort();
+  const categories = (await getMergedProductCategories()).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 mt-4">
@@ -37,16 +30,16 @@ export default async function CategoriesPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {categories.map((category) => (
             <Link 
-              key={category} 
+              key={category.slug} 
               // Routes to the search page, automatically filtering by this category
-              href={`/search?category=${encodeURIComponent(category)}`}
+              href={`/search?category=${encodeURIComponent(category.slug)}`}
               className="group relative bg-gray-50 rounded-2xl p-8 border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-center flex flex-col items-center justify-center overflow-hidden"
             >
               {/* Optional background accent on hover */}
               <div className="absolute inset-0 bg-blue-50 opacity-0 group-hover:opacity-100 transition-opacity" />
               
               <h2 className="relative text-2xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors capitalize">
-                {category}
+                {category.name}
               </h2>
               <span className="relative mt-2 text-sm font-medium text-gray-500 group-hover:text-blue-600 transition-colors">
                 Explore Collection &rarr;

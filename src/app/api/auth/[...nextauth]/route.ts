@@ -13,21 +13,24 @@ const handler = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        const email = credentials?.email;
+        const password = credentials?.password;
+
+        if (typeof email !== "string" || typeof password !== "string") {
           throw new Error("Missing credentials");
         }
 
         await connectToDatabase();
 
         // 1. Check if the admin exists
-        const admin = await Admin.findOne({ email: credentials.email });
+        const admin = await Admin.findOne({ email });
         if (!admin) {
           throw new Error("Invalid email or password");
         }
 
         // 2. Check if the password matches the hashed password in the DB
         const isPasswordValid = await bcrypt.compare(
-          credentials.password,
+          password,
           admin.password
         );
 

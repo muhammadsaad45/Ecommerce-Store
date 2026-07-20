@@ -1,12 +1,29 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import { DEFAULT_PRODUCT_CATEGORIES, slugifyCategoryName } from "@/lib/productCatalog";
 
 type ProductImagePayload = {
   imageUrl?: unknown;
   images?: unknown;
+  category?: unknown;
+  categorySlug?: unknown;
   [key: string]: unknown;
 };
+
+function normalizeCategoryFields(body: ProductImagePayload) {
+  const category = typeof body.category === "string" ? body.category.trim() : "";
+  const categorySlug = typeof body.categorySlug === "string" && body.categorySlug.trim().length > 0
+    ? body.categorySlug.trim()
+    : slugifyCategoryName(category);
+  const matchedCategory = DEFAULT_PRODUCT_CATEGORIES.find((item) => item.slug === categorySlug || item.name === category) || null;
+
+  return {
+    ...body,
+    category: matchedCategory?.name || category,
+    categorySlug: matchedCategory?.slug || categorySlug,
+  };
+}
 
 function normalizeProductImages(body: ProductImagePayload) {
   const images = Array.isArray(body.images)
@@ -23,6 +40,10 @@ function normalizeProductImages(body: ProductImagePayload) {
   };
 }
 
+function normalizeProductPayload(body: ProductImagePayload) {
+  return normalizeCategoryFields(normalizeProductImages(body));
+}
+
 export async function POST(request: Request) {
   try {
     // 1. Open the database connection
@@ -30,7 +51,7 @@ export async function POST(request: Request) {
     
     // 2. Grab the data sent from your frontend form
     const body = (await request.json()) as ProductImagePayload;
-    const normalizedBody = normalizeProductImages(body);
+    const normalizedBody = normalizeProductPayload(body);
     
     // 3. Tell Mongoose to create a new Product using our schema
     const newProduct = await Product.create(normalizedBody);

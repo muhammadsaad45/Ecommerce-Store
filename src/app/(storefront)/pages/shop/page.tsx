@@ -1,88 +1,151 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { connectToDatabase } from "@/lib/mongodb";
 import Product from "@/models/Product"; // Adjust path if needed
+import FilterSidebar from "@/components/FilterSidebar";
+import { getMergedProductCategories } from "@/lib/productCategoryQueries";
+import { collectSpecValuesByFilterParam, createSpecFilterParam, resolveCategoryByIdentifier } from "@/lib/productCatalog";
 
 export const metadata = {
   title: "Shop All Products | TechStore",
   description: "Browse our complete catalog of premium tech and gadgets.",
 };
 
-export default async function ShopPage() {
+interface ShopPageProps {
+  searchParams: Promise<Record<string, string | undefined>>;
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export default async function ShopPage({ searchParams }: ShopPageProps) {
+  const params = await searchParams;
+  const category = params.category;
+  const minPrice = params.minPrice;
+  const maxPrice = params.maxPrice;
+  const inStock = params.inStock;
+  const sort = params.sort || "newest";
+
   await connectToDatabase();
+
+  const categories = await getMergedProductCategories();
+  const selectedCategory = resolveCategoryByIdentifier(categories, category);
+
+  const baseQuery: any = { isActive: true };
+  const finalQuery: any = { isActive: true };
+  const andConditions: any[] = [];
+
+  if (selectedCategory) {
+    const categoryCondition = {
+      $or: [
+        { categorySlug: selectedCategory.slug },
+        { category: { $regex: new RegExp(`^${escapeRegex(selectedCategory.name)}$`, "i") } },
+      ],
+    };
+
+    baseQuery.$and = [categoryCondition];
+    finalQuery.$and = [categoryCondition];
+  }
+
+  if (minPrice || maxPrice) {
+    baseQuery.price = {};
+    finalQuery.price = {};
+    if (minPrice) {
+      baseQuery.price.$gte = Number(minPrice);
+      finalQuery.price.$gte = Number(minPrice);
+    }
+    if (maxPrice) {
+      baseQuery.price.$lte = Number(maxPrice);
+      finalQuery.price.$lte = Number(maxPrice);
+    }
+  }
+
+  if (inStock === "true") {
+    baseQuery.stock = { $gt: 0 };
+    finalQuery.stock = { $gt: 0 };
+  }
+
+  if (selectedCategory) {
+    selectedCategory.specGroups.forEach((group) => {
+      group.keys.forEach((key) => {
+        const paramName = createSpecFilterParam(group.group, key);
+        const value = params[paramName];
+
+        if (value) {
+          andConditions.push({
+            specs: {
+              $elemMatch: {
+                group: { $regex: new RegExp(`^${escapeRegex(group.group)}$`, "i") },
+                key: { $regex: new RegExp(`^${escapeRegex(key)}$`, "i") },
+                value: { $regex: new RegExp(`^${escapeRegex(value)}$`, "i") },
+              },
+            },
+          });
+        }
+      });
+    });
+  }
+
+  if (andConditions.length > 0) {
+    finalQuery.$and = [...(finalQuery.$and || []), ...andConditions];
+  }
+
+  let sortLogic: any = { createdAt: -1 };
+  if (sort === "price_asc") sortLogic = { price: 1 };
+  if (sort === "price_desc") sortLogic = { price: -1 };
   
-  // Fetch all active products, sorting newest first
-  const products = await Product.find({ isActive: true }) // Or however you track active status
-    .sort({ createdAt: -1 })
+  const baseProducts = await Product.find(baseQuery).select({ specs: 1 }).lean();
+  const specValuesByParam = selectedCategory ? collectSpecValuesByFilterParam(selectedCategory, baseProducts as Array<{ specs?: { group: string; key: string; value: string }[] }>) : {};
+
+  const products = await Product.find(finalQuery)
+    .sort(sortLogic)
     .lean();
 
   return (
-    <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8 mt-4">
-      <div className="flex items-center justify-between mb-10 border-b pb-6">
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">
-          All Products
-        </h1>
-        <span className="text-sm font-medium text-gray-500">
-          {products.length} {products.length === 1 ? 'Item' : 'Items'}
-        </span>
-      </div>
-
-      {products.length === 0 ? (
-        // The Empty State
-        <div className="text-center py-24 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
-          <svg className="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-          </svg>
-          <h3 className="text-lg font-medium text-gray-900">No products available yet</h3>
-          <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-            We are currently restocking our inventory. Check back soon for the latest premium gadgets!
+    <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <div className="mb-8 border-b border-gray-100 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">All Products</h1>
+          <p className="text-gray-500 mt-2">
+            {products.length > 0 ? `Showing ${products.length} product${products.length === 1 ? "" : "s"}` : "No products matched your filters"}
           </p>
         </div>
-      ) : (
-        // The Product Grid
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-            {products.map((product: any) => (
-              <div 
-                key={product._id.toString()} 
-                className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-full group"
-              >
-                <div className="h-56 w-full bg-gray-100 relative overflow-hidden border-b border-gray-100">
-                  <img 
-                    src={product.imageUrl || "https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=500"} 
-                    alt={product.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
+      </div>
 
-                <div className="p-5 flex flex-col grow">
-                  <h2 className="font-bold text-lg text-gray-800 mb-1 line-clamp-1">
-                    {product.name}
-                  </h2>
-                  <p className="text-gray-500 text-sm mb-4 line-clamp-2 grow">
-                    {product.description}
-                  </p>
-                  
-                  <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-                    <span className="text-xl font-extrabold text-gray-900">
-                      ${product.price.toFixed(2)}
-                    </span>
-                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                      product.stock > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                    }`}>
-                      {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                    </span>
+      <div className="flex flex-col md:flex-row gap-8">
+        <aside className="w-full md:w-64 shrink-0">
+          <Suspense fallback={<div className="h-96 bg-gray-50 animate-pulse rounded-2xl"></div>}>
+            <FilterSidebar categories={categories} specValuesByParam={specValuesByParam} />
+          </Suspense>
+        </aside>
+
+        <main className="flex-1">
+          {products.length === 0 ? (
+            <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No Products Found</h3>
+              <p className="text-gray-500 mb-6 max-w-md mx-auto">Try clearing some filters or adjusting your price range.</p>
+              <Link href="/pages/shop" className="px-6 py-3 rounded-xl bg-blue-600 text-white font-bold">Clear All Filters</Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {products.map((product: any) => (
+                <Link key={product._id.toString()} href={`/products/${product.slug || product._id.toString()}`} className="group flex flex-col bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="aspect-square bg-gray-50 rounded-xl p-4 flex items-center justify-center relative mb-4 overflow-hidden">
+                    <img src={product.imageUrl} alt={product.name} className="max-h-full max-w-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300" />
                   </div>
-
-                  <Link 
-                    href={`/products/${product.slug.toString()}`}
-                    className="mt-4 w-full bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-center font-semibold py-2.5 rounded-lg transition-colors block"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            ))}
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">{product.category}</span>
+                  <h3 className="text-sm font-semibold text-gray-800 group-hover:text-blue-600 transition-colors line-clamp-2 mb-2">{product.name}</h3>
+                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-50">
+                    <span className="text-base font-bold text-gray-900">${product.price.toFixed(2)}</span>
+                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full group-hover:bg-blue-600 group-hover:text-white transition-all">View details</span>
+                  </div>
+                </Link>
+              ))}
           </div>
-      )}
+          )}
+        </main>
+      </div>
     </div>
   );
 }

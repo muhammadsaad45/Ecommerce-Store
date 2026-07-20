@@ -3,18 +3,15 @@ import Product from "@/models/Product";
 import Link from "next/link";
 import { Suspense } from "react";
 import FilterSidebar from "@/components/FilterSidebar";
+import { getMergedProductCategories } from "@/lib/productCategoryQueries";
+import { collectSpecValuesByFilterParam, resolveCategoryByIdentifier, createSpecFilterParam } from "@/lib/productCatalog";
 
 interface SearchPageProps {
-  searchParams: Promise<{ 
-    q?: string;
-    category?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    inStock?: string;
-    sort?: string;
-    Brand?: string;
-    Processor?: string;
-  }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
@@ -25,85 +22,94 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
   const maxPrice = params.maxPrice;
   const inStock = params.inStock;
   const sort = params.sort || "newest";
-  const brand = params.Brand;
-  const processor = params.Processor;
-
   await connectToDatabase();
 
-  // 1. EXTRACT DYNAMIC FILTERS DIRECTLY FROM EXISTING PRODUCTS
-  // This pipeline scans all active products and extracts unique categories and specific spec values!
-  const filterData = await Product.aggregate([
-    { $match: { isActive: true } },
-    {
-      $facet: {
-        rawCategories: [{ $group: { _id: "$category" } }],
-        specs: [
-          { $unwind: "$specs" },
-          // Only extract values for these specific keys to keep the sidebar clean
-          { $match: { "specs.key": { $in: ["Brand", "Processor"] } } }, 
-          { $group: { _id: "$specs.key", values: { $addToSet: "$specs.value" } } }
-        ]
-      }
-    }
-  ]);
+  const categories = await getMergedProductCategories();
+  const selectedCategory = resolveCategoryByIdentifier(categories, category);
 
-  // Clean up categories
-  const uniqueCategories = Array.from(
-    new Set(filterData[0].rawCategories.map((c: any) => c._id?.trim().toLowerCase()))
-  ).filter(Boolean).map((c: any) => c.charAt(0).toUpperCase() + c.slice(1)); 
-
-  // Format dynamic specs { Brand: ["Apple", "Samsung"], Processor: ["Snapdragon", "A15"] }
-  const dynamicSpecs: Record<string, string[]> = {};
-  filterData[0].specs.forEach((spec: any) => {
-    dynamicSpecs[spec._id] = spec.values.filter(Boolean);
-  });
-
-  // 2. BUILD THE SEARCH QUERY
-  const dbQuery: any = { isActive: true };
-  const andConditions: any[] = []; // Used for complex spec matching
+  const baseQuery: any = { isActive: true };
+  const finalQuery: any = { isActive: true };
+  const andConditions: any[] = [];
 
   if (query) {
-    dbQuery.$or = [
+    baseQuery.$or = [
       { name: { $regex: query, $options: "i" } },
       { category: { $regex: query, $options: "i" } },
+      { categorySlug: { $regex: query, $options: "i" } },
       { "specs.value": { $regex: query, $options: "i" } },
     ];
+    finalQuery.$or = baseQuery.$or;
   }
 
-  // Use case-insensitive Regex to fix the "s" at the end bug!
-  if (category && category !== "All") {
-    dbQuery.category = { $regex: new RegExp(`^${category.replace(/s$/, '')}s?$`, "i") };
+  if (selectedCategory) {
+    const categoryCondition = {
+      $or: [
+        { categorySlug: selectedCategory.slug },
+        { category: { $regex: new RegExp(`^${escapeRegex(selectedCategory.name)}$`, "i") } },
+      ],
+    };
+
+    baseQuery.$and = [categoryCondition];
+    finalQuery.$and = [categoryCondition];
   }
 
   if (minPrice || maxPrice) {
-    dbQuery.price = {};
-    if (minPrice) dbQuery.price.$gte = Number(minPrice);
-    if (maxPrice) dbQuery.price.$lte = Number(maxPrice);
+    baseQuery.price = {};
+    finalQuery.price = {};
+    if (minPrice) {
+      baseQuery.price.$gte = Number(minPrice);
+      finalQuery.price.$gte = Number(minPrice);
+    }
+    if (maxPrice) {
+      baseQuery.price.$lte = Number(maxPrice);
+      finalQuery.price.$lte = Number(maxPrice);
+    }
   }
 
   if (inStock === "true") {
-    dbQuery.stock = { $gt: 0 };
+    baseQuery.stock = { $gt: 0 };
+    finalQuery.stock = { $gt: 0 };
   }
 
-  // Push dynamic specs into an $and array so they must ALL match
-  if (brand) {
-    andConditions.push({ specs: { $elemMatch: { key: { $regex: /^Brand$/i }, value: { $regex: new RegExp(`^${brand}$`, "i") } } } });
-  }
-  if (processor) {
-    andConditions.push({ specs: { $elemMatch: { key: { $regex: /^Processor$/i }, value: { $regex: new RegExp(`^${processor}$`, "i") } } } });
-  }
+  const specFilters = selectedCategory
+    ? selectedCategory.specGroups.flatMap((group) =>
+        group.keys.map((key) => ({
+          paramName: createSpecFilterParam(group.group, key),
+          group: group.group,
+          key,
+        }))
+      )
+    : [];
+
+  specFilters.forEach(({ group, key }) => {
+    const paramName = createSpecFilterParam(group, key);
+    const value = params[paramName];
+
+    if (value) {
+      andConditions.push({
+        specs: {
+          $elemMatch: {
+            group: { $regex: new RegExp(`^${escapeRegex(group)}$`, "i") },
+            key: { $regex: new RegExp(`^${escapeRegex(key)}$`, "i") },
+            value: { $regex: new RegExp(`^${escapeRegex(value)}$`, "i") },
+          },
+        },
+      });
+    }
+  });
 
   if (andConditions.length > 0) {
-    dbQuery.$and = andConditions;
+    finalQuery.$and = [...(finalQuery.$and || []), ...andConditions];
   }
 
-  // 3. DETERMINE SORTING LOGIC
   let sortLogic: any = { createdAt: -1 }; // Default: Newest Added
   if (sort === "price_asc") sortLogic = { price: 1 }; // Low to High
   if (sort === "price_desc") sortLogic = { price: -1 }; // High to Low
 
-  // 4. FETCH RESULTS
-  const products = await Product.find(dbQuery).sort(sortLogic).lean();
+  const baseProducts = await Product.find(baseQuery).select({ specs: 1 }).lean();
+  const specValuesByParam = selectedCategory ? collectSpecValuesByFilterParam(selectedCategory, baseProducts as Array<{ specs?: { group: string; key: string; value: string }[] }>) : {};
+
+  const products = await Product.find(finalQuery).sort(sortLogic).lean();
 
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -119,8 +125,7 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
       <div className="flex flex-col md:flex-row gap-8">
         <aside className="w-full md:w-64 shrink-0">
           <Suspense fallback={<div className="h-96 bg-gray-50 animate-pulse rounded-2xl"></div>}>
-            {/* Pass the dynamic data extracted from the DB straight to the sidebar */}
-            <FilterSidebar dbCategories={uniqueCategories} dbSpecs={dynamicSpecs} />
+            <FilterSidebar categories={categories} specValuesByParam={specValuesByParam} />
           </Suspense>
         </aside>
 
