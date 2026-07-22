@@ -12,23 +12,29 @@ export default function AdminLogin() {
   const router = useRouter(); 
   // Function to handle the form submission
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Prevents the page from refreshing
-    setError(""); // Reset error message
+    e.preventDefault(); 
+    setError(""); 
     
-    const result = await signIn("credentials", {
-        redirect: false, // Prevents automatic redirection
-        email,
-        password,
-      });
+    try {
+      // Force the variables to be explicit strings so NextAuth's parser doesn't drop them
+      const payload = {
+        email: String(email),
+        password: String(password),
+        redirect: false as const,
+      };
 
-      if (result?.error) {
-        setError("Invalid email or password"); // Display the error message
+      const result = await signIn("admin-credentials", payload);
+
+      if (result?.error || !result?.ok) {
+        setError("Invalid email or password"); 
+      } else {
+        window.location.href = "/admin";
       }
-      else {
-        router.push("/admin/"); // Redirect to the dashboard on successful login
-        router.refresh(); // Refresh the page to update the session state
-      }
-    };
+    } catch (err) {
+      console.error("Login component error:", err);
+      setError("An unexpected authentication error occurred.");
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

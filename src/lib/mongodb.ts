@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
 
-// Grab the connection string from your .env.local file
-const MONGODB_URI = process.env.MONGODB_URI as string;
-
-if (!MONGODB_URI) {
-  throw new Error("Please define the MONGODB_URI environment variable inside .env.local");
+if (!process.env.MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable');
 }
 
-// Next.js caching logic to prevent database connection limits
+const MONGODB_URI = process.env.MONGODB_URI;
+
 let cached = (global as any).mongoose;
 
 if (!cached) {
@@ -24,12 +22,17 @@ export async function connectToDatabase() {
       bufferCommands: false,
     };
 
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      console.log("Successfully connected to MongoDB!");
-      return mongoose;
+    cached.promise = mongoose.connect(MONGODB_URI, opts).then((m) => {
+      return m;
     });
   }
   
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (e) {
+    cached.promise = null; // Reset cache on failure
+    throw e;
+  }
+
   return cached.conn;
 }
