@@ -5,6 +5,8 @@ import SearchBar from "@/components/SearchBar";
 import { CartProvider } from "@/context/CartContext";
 import CartMenu from "@/components/CartMenu";
 import { Metadata } from "next";
+import { auth } from "@/auth"; // <-- Imported Auth
+import { User, ShieldAlert } from "lucide-react"; // <-- Imported Icons
 
 export const metadata: Metadata = {
   // This creates a dynamic template! 
@@ -60,7 +62,11 @@ export default async function StorefrontLayout({
   }: {
     children: React.ReactNode;
   }) {
-  // Fetch the pages before rendering the layout
+  
+  // 1. Fetch data & active session before rendering the layout
+  const session = await auth();
+  const role = session?.user?.role;
+  
   const footerPages = await getFooterPages();
   const headerPages = await getHeaderPages();
   const quickLinks = footerPages.filter((page: any) => page.footerPlacement === 'quick_links' || !page.footerPlacement);
@@ -81,7 +87,6 @@ export default async function StorefrontLayout({
             </div>
             
             {/* 2. CENTER: Navigation Links & Search */}
-            {/* Added flex-1 and justify-center to dynamically center this block */}
             <nav className="hidden md:flex flex-1 items-center justify-center space-x-8 font-medium text-gray-600 px-8">
               <Link href="/pages/shop" className="hover:text-blue-600 transition-colors">Shop</Link>
               <Link href="/pages/categories" className="hover:text-blue-600 transition-colors">Categories</Link>
@@ -101,14 +106,29 @@ export default async function StorefrontLayout({
               <SearchBar />
             </nav>
 
-            {/* 3. RIGHT: Cart Menu & Admin Panel */}
-            {/* Moved OUT of the nav tag so it sits independently on the far right */}
+            {/* 3. RIGHT: Cart Menu & Dynamic Auth Button */}
             <div className="flex items-center space-x-6 shrink-0">
               <CartMenu />
 
-              <Link href="/admin" className="text-sm bg-gray-900 hover:bg-gray-800 text-white px-4 py-2 rounded-lg transition-colors font-medium">
-                Admin Panel
-              </Link>
+              {/* Dynamic Authentication Logic */}
+              {!session ? (
+                // VISITOR: Show the unified Login/Sign Up button
+                <Link href="/login" className="text-sm bg-gray-900 hover:bg-gray-800 text-white px-5 py-2 rounded-lg transition-colors font-medium">
+                  Sign In
+                </Link>
+              ) : role === "admin" ? (
+                // ADMIN: Show the red Admin Panel button
+                <Link href="/admin" className="flex items-center gap-2 text-sm font-medium bg-red-50 text-red-700 px-4 py-2 rounded-lg hover:bg-red-100 transition-colors">
+                  <ShieldAlert className="w-4 h-4" />
+                  Admin Panel
+                </Link>
+              ) : (
+                // CUSTOMER: Show the Customer Profile button
+                <Link href="/profile" className="flex items-center gap-2 text-sm font-medium bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                  <User className="w-4 h-4" />
+                  My Account
+                </Link>
+              )}
             </div>
 
           </div>
