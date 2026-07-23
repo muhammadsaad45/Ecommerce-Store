@@ -44,3 +44,64 @@ export async function addAddress(formData: FormData) {
   
   return { success: true };
 }
+
+// Add this below your existing addAddress function in src/actions/profile.ts
+
+export async function updateAddress(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  const addressId = formData.get("addressId");
+  const isDefault = formData.get("isDefault") === "on";
+
+  await connectToDatabase();
+
+  // If they are making this the new default, strip the default status from all others first
+  if (isDefault) {
+    await User.updateOne(
+      { email: session.user.email, "addresses.0": { $exists: true } },
+      { $set: { "addresses.$[].isDefault": false } }
+    );
+  }
+
+  // Update the specific subdocument using the positional operator ($)
+  await User.updateOne(
+    { email: session.user.email, "addresses._id": addressId },
+    {
+      $set: {
+        "addresses.$.street": formData.get("street"),
+        "addresses.$.city": formData.get("city"),
+        "addresses.$.state": formData.get("state"),
+        "addresses.$.zipCode": formData.get("zipCode"),
+        "addresses.$.country": formData.get("country") || "United States",
+        "addresses.$.isDefault": isDefault,
+      },
+    }
+  );
+
+  revalidatePath("/profile");
+  return { success: true };
+}
+
+
+export async function setDefaultAddress(addressId: string) {
+  const session = await auth();
+  if (!session?.user?.email) throw new Error("Unauthorized");
+
+  await connectToDatabase();
+
+  // Step 1: Remove the default flag from all existing addresses
+  await User.updateOne(
+    { email: session.user.email, "addresses.0": { $exists: true } },
+    { $set: { "addresses.$[].isDefault": false } }
+  );
+
+  // Step 2: Apply the default flag to the newly selected address
+  await User.updateOne(
+    { email: session.user.email, "addresses._id": addressId },
+    { $set: { "addresses.$.isDefault": true } }
+  );
+
+  revalidatePath("/profile");
+  return { success: true };
+}
