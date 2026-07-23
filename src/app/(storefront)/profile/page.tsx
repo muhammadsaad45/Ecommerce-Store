@@ -94,6 +94,7 @@ const savedAddresses = JSON.parse(JSON.stringify(dbUser?.addresses || []));
         <main className="lg:col-span-3 min-h-100">
           
           {/* TAB 1: ORDER LOGS */}
+          {/* TAB 1: ORDER LOGS */}
           {activeTab === "orders" && (
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 space-y-6">
               <h3 className="text-lg font-bold text-gray-900 border-b border-gray-100 pb-3">Your Orders</h3>
@@ -103,15 +104,39 @@ const savedAddresses = JSON.parse(JSON.stringify(dbUser?.addresses || []));
                 <div className="space-y-4">
                   {userOrders.map((order: any) => (
                     <div key={order._id.toString()} className="border border-gray-200 rounded-xl p-5 hover:border-gray-300 transition-all">
-                      <div className="flex flex-wrap justify-between items-center border-b border-gray-100 pb-3 mb-3 gap-2">
-                        <div>
-                          <span className="text-xs font-bold text-gray-400 block uppercase">Order Reference</span>
-                          <span className="font-mono text-sm text-gray-800">{order.orderNumber || order._id.toString().slice(-8).toUpperCase()}</span>
+                      
+                      {/* Header Row: Reference, Tracking, and Status */}
+                      <div className="flex flex-wrap justify-between items-start border-b border-gray-100 pb-3 mb-3 gap-4">
+                        
+                        <div className="flex flex-wrap gap-8">
+                          <div>
+                            <span className="text-xs font-bold text-gray-400 block uppercase">Order Reference</span>
+                            <span className="font-mono text-sm text-gray-800">{order.orderNumber || order._id.toString().slice(-8).toUpperCase()}</span>
+                          </div>
+                          
+                          {/* NEW: Tracking Number Display */}
+                          {(order.trackingNumber || order.status === "Shipped" || order.status === "Delivered") && (
+                            <div>
+                              <span className="text-xs font-bold text-gray-400 block uppercase">Tracking Number</span>
+                              <span className="font-mono text-sm font-medium text-blue-600">
+                                {order.trackingNumber || "Pending Logistics"}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${order.status === "Delivered" ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"}`}>
+                        
+                        {/* Enhanced Status Badge */}
+                        <span className={`px-3 py-1 text-xs font-semibold rounded-full border ${
+                          order.status === "Delivered" ? "bg-green-50 text-green-700 border-green-200" : 
+                          order.status === "Shipped" ? "bg-blue-50 text-blue-700 border-blue-200" :
+                          order.status === "Cancelled" ? "bg-red-50 text-red-700 border-red-200" :
+                          "bg-orange-50 text-orange-700 border-orange-200"
+                        }`}>
                           {order.status || "Processing"}
                         </span>
                       </div>
+                      
+                      {/* Items List */}
                       <div className="space-y-2 text-sm text-gray-600">
                         {order.items?.map((item: any, idx: number) => (
                           <div key={idx} className="flex justify-between">
@@ -120,6 +145,14 @@ const savedAddresses = JSON.parse(JSON.stringify(dbUser?.addresses || []));
                           </div>
                         ))}
                       </div>
+
+                      {/* Link to the dynamic visual timeline page */}
+                      <div className="mt-4 pt-3 border-t border-gray-50 text-right">
+                        <Link href={`/order/${order.orderNumber}`} className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                          View full receipt & tracking &rarr;
+                        </Link>
+                      </div>
+
                     </div>
                   ))}
                 </div>

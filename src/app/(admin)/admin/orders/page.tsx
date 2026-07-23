@@ -16,8 +16,10 @@ export default async function AdminOrdersPage() {
     _id: order._id.toString(),
     orderNumber: order.orderNumber,
     customer: order.customer,
+    items: JSON.parse(JSON.stringify(order.items || [])),             // NEW: Pass the items so you can see what was ordered
     total: order.total,
-    status: order.status,
+    status: order.status || "Processing",   // Fallback to Processing if empty
+    trackingNumber: order.trackingNumber,   // NEW: Pass the tracking number for fulfillment
     createdAt: order.createdAt.toISOString(),
   }));
 

@@ -19,6 +19,7 @@ export interface IOrder extends Document {
   subtotal: number;
   shippingCost: number;
   total: number;
+  trackingNumber?: string;
   status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
   createdAt: Date;
 }
@@ -53,6 +54,7 @@ const OrderSchema = new Schema<IOrder>(
       enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled"],
       default: "Pending",
     },
+    trackingNumber: { type: String, default: "" },
   },
   { timestamps: true }
 );
