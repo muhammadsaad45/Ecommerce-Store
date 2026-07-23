@@ -161,7 +161,6 @@ const savedAddresses = JSON.parse(JSON.stringify(dbUser?.addresses || []));
           )}
 
           {/* TAB 2: ADDRESS MANAGEMENT */}
-          {/* TAB 2: ADDRESS MANAGEMENT */}
           {activeTab === "addresses" && (
              <AddressBook savedAddresses={savedAddresses} userName={session.user.name as string} />
           )}

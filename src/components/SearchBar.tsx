@@ -56,7 +56,8 @@ export default function SearchBar() {
       try {
         const res = await fetch(`/api/search/suggestions?q=${encodeURIComponent(query)}`);
         const data = await res.json();
-        setResults(data.results || []);
+        console.log(data);
+        setResults(data.products || []);
         
         // UPGRADED THE RACE CONDITION FIX: 
         // Only open the dropdown if the cursor is STILL inside the input box!
